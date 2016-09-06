@@ -64,7 +64,7 @@ void runWifiClient(){
     Serial.println("Request: "+response);
 
     // give the web browser time to receive the data
-    delay(1);
+    vTaskDelay(1);
 
     // close the connection:
     client.stop();
@@ -82,7 +82,7 @@ void runWifiClient(){
 }
 void srvr_or_ap(){
   pinMode(13, INPUT);
-  delay(500);
+  vTaskDelay(500);
   if(digitalRead(13) == HIGH){
     // attempt to start AP:
     while (status != WL_CONNECTED) {
@@ -94,7 +94,7 @@ void srvr_or_ap(){
       xSemaphoreTake(binSemaphore_WifiStatus, portMAX_DELAY);
       status = WiFi.apbegin(ssid, pass, channel);
       xSemaphoreGive(binSemaphore_WifiStatus);
-      delay(10000);
+      vTaskDelay(10000);
     }
     //AP MODE already started:
     xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
@@ -115,7 +115,7 @@ void srvr_or_ap(){
         xSemaphoreTake(binSemaphore_WifiStatus, portMAX_DELAY);
         status = WiFi.begin(ssid, pass);
         xSemaphoreGive(binSemaphore_WifiStatus);
-        delay(5000);
+        vTaskDelay(5000);
       }
       isSTA = true;
       xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
