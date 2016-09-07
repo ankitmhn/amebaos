@@ -4,7 +4,7 @@
 #include <FreeRTOS.h>
 #include <croutine.h>
 #include <event_groups.h>
-#include <FreeRTOSConfig.h>
+//#include <FreeRTOSConfig.h>
 //#include <FreeRTOSVariant.h>
 #include <list.h>
 #include <mpu_wrappers.h>
@@ -59,13 +59,15 @@ void setup()
     if(binSemaphore_RTC != NULL && binSemaphore_RTC != NULL && binSemaphore_WifiStatus != NULL)
     {
         Serial.println(F("Creating RTC task"));
-        xTaskCreate(RTC_Task, "RTC_Task", 100, NULL, 1, &RTC_TaskHandle);
+        xTaskCreate(RTC_Task, "RTC_Task", 1000, NULL, 1, &RTC_TaskHandle);
 
         Serial.println(F("Creating kernel task"));
-        xTaskCreate(kernel_Task, "Kernel_Task", 100, NULL, 1, &kernel_TaskHandle);
+        xTaskCreate(kernel_Task, "Krnl_Task", 1000, NULL, 2, &kernel_TaskHandle);
 
         Serial.println(F("Creating WIFI task"));
-        xTaskCreate(wifi_Task, "WIFI_Task", 100, NULL, 1, &kernel_TaskHandle);
+        xTaskCreate(wifi_Task, "WIFI_Task", 1000, NULL, 3, &wifi_TaskHandle);
+
+        vTaskStartScheduler();
     }
     else
     {
@@ -76,8 +78,8 @@ void setup()
 
 void loop()
 { // Hooked to Idle Task, will run when CPU is Idle
-    /*Serial.println(F("Loop function"));
-    delay(50);*/
+    Serial.println(F("Loop function"));
+    delay(50);
 }
 
 void RTC_Task(void* pvParameters){
@@ -85,43 +87,12 @@ void RTC_Task(void* pvParameters){
   DS3231_init(DS3231_INTCN);
   while(1){
     //take control
+    
     xSemaphoreTake(binSemaphore_RTC,portMAX_DELAY);
     getLatestTime();
     xSemaphoreGive(binSemaphore_RTC);
-
-    vTaskDelay(10000); //wait 10 sec before next update
+    Serial.println(F("RTC Task waiting..."));
+    delay(200);
+    vTaskDelay(10000/portTICK_PERIOD_MS); //wait 10 sec before next update
   }
 }
-/*LPT: Low priority task
-void LPT_Task(void* pvParameters)
-{
-    printMsg(LPT_TaskHandle,"LPT_Task Acquiring semaphore"); 
-    xSemaphoreTake(binSemaphore_A,portMAX_DELAY);
-
-    printMsg(LPT_TaskHandle,"LPT_Task Creating HPT"); 
-    xTaskCreate(HPT_Task, "HPT_Task", 100, NULL, 3, &HPT_TaskHandle); 
-
-    printMsg(LPT_TaskHandle,"LPT_Task Trying to take sempahore again");
-    xSemaphoreTake(binSemaphore_A,portMAX_DELAY);   
-
-    printMsg(LPT_TaskHandle,"LPT_Task Finally Exiting");
-    vTaskDelete(LPT_TaskHandle);
-}
-
-*/
-
-/*HPT: High priority task
-void HPT_Task(void* pvParameters)
-{
-    printMsg(HPT_TaskHandle,"HPT_Task Trying to Acquire the semaphore");
-    xSemaphoreTake(binSemaphore_A,portMAX_DELAY);
-
-    printMsg(HPT_TaskHandle,"HPT_Task Acquired the semaphore");    
-
-    printMsg(HPT_TaskHandle,"HPT_Task Releasing the semaphore");
-    xSemaphoreGive(binSemaphore_A);    
-
-    printMsg(HPT_TaskHandle,"HPT_Task About to Exit");
-    vTaskDelete(HPT_TaskHandle);
-}
-*/

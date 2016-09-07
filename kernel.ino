@@ -6,7 +6,7 @@ void kernel_Task(void* pvParameters){
     digitalWrite(i, LOW);
   }
   xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-  Serial.println("Zone pins init complete");
+  Serial.println(F("Zone pins init complete"));
   xSemaphoreGive(binSemaphore_Console);
 
   Weather wx;
@@ -19,9 +19,16 @@ void kernel_Task(void* pvParameters){
 
   if(wx.getData()){
     //TODO: parse response and process
+    Serial.println(F("Got data"));
   }
   else{
     //could not get response
+    Serial.println(F("Error getting WX data"));
+  }
+  while(1){
+    Serial.println(F("Kernal Task waiting..."));
+    delay(200);
+    vTaskDelay(500/portTICK_PERIOD_MS);
   }
 }
 

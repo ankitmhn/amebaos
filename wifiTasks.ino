@@ -1,14 +1,14 @@
 void wifi_Task(void* pvParameters){
   if (WiFi.status() == WL_NO_SHIELD) {
     xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-    Serial.println("WiFi shield not present. Wifi service halted.");
+    Serial.println(F("WiFi shield not present. Wifi service halted."));
     xSemaphoreGive(binSemaphore_Console);
     while (true);
   }
   String fv = WiFi.firmwareVersion();
   if (fv != "1.1.0") {
     xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-    Serial.println("Please upgrade the firmware");
+    Serial.println(F("Please upgrade the firmware"));
     xSemaphoreGive(binSemaphore_Console);
   }
   srvr_or_ap();
@@ -18,13 +18,16 @@ void wifi_Task(void* pvParameters){
 
     else
       srvr_or_ap();
+    Serial.println(F("WiFi task waiting..."));
+    delay(500);
+    vTaskDelay(500/portTICK_PERIOD_MS);
   }
 }
 
 void runWifiClient(){
   WiFiClient client = server.available();
   if (client) {
-    Serial.println("new client");
+    Serial.println(F("new client"));
     // an http request ends with a blank line
     boolean currentLineIsBlank = true;
     String response = "";
@@ -61,14 +64,15 @@ void runWifiClient(){
       }
       
     }
-    Serial.println("Request: "+response);
+    Serial.print(F("Request: "));
+    Serial.println(response);
 
     // give the web browser time to receive the data
     vTaskDelay(1);
 
     // close the connection:
     client.stop();
-    Serial.println("client disonnected");
+    Serial.println(F("client disonnected"));
 
     //if we get WiFi creds
     if(getCreds(response)){
@@ -87,29 +91,30 @@ void srvr_or_ap(){
     // attempt to start AP:
     while (status != WL_CONNECTED) {
       xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-      Serial.print("Attempting to start AP with SSID: ");
+      Serial.print(F("Attempting to start AP with SSID: "));
       Serial.println(ssid);
       xSemaphoreGive(binSemaphore_Console);
 
       xSemaphoreTake(binSemaphore_WifiStatus, portMAX_DELAY);
       status = WiFi.apbegin(ssid, pass, channel);
       xSemaphoreGive(binSemaphore_WifiStatus);
-      vTaskDelay(10000);
+      delay(200);
+      vTaskDelay(10000/portTICK_PERIOD_MS); 
     }
     //AP MODE already started:
     xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-    Serial.println("AP mode started");
+    Serial.println(F("AP mode started"));
     Serial.println();
     xSemaphoreGive(binSemaphore_Console);
   }
   else{
     xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-    Serial.println("Will start in STA... ");
+    Serial.println(F("Will start in STA... "));
     xSemaphoreGive(binSemaphore_Console);
     if(readCredNVM()){
       while (status != WL_CONNECTED){
         xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-        Serial.print("Attempting to connect to ssid: "); Serial.println(ssid);
+        Serial.print(F("Attempting to connect to ssid: ")); Serial.println(ssid);
         xSemaphoreGive(binSemaphore_Console);
 
         xSemaphoreTake(binSemaphore_WifiStatus, portMAX_DELAY);
@@ -119,13 +124,13 @@ void srvr_or_ap(){
       }
       isSTA = true;
       xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-      Serial.print("Connected to: ");
+      Serial.print(F("Connected to: "));
       Serial.println(ssid);
       xSemaphoreGive(binSemaphore_Console);
       return;
     }
     xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-    Serial.println("Could not connect... halting");
+    Serial.println(F("Could not connect... halting"));
     xSemaphoreGive(binSemaphore_Console);
     while(true);
   }
@@ -135,7 +140,7 @@ void srvr_or_ap(){
 bool readCredNVM(){
   
   xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-  Serial.println("Reading from NVM: ");
+  Serial.println(F("Reading from NVM: "));
   xSemaphoreGive(binSemaphore_Console);
   
   FlashMemory.read();
@@ -161,9 +166,9 @@ bool readCredNVM(){
     pos++;
   }
   xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-  Serial.print("SSID: ");
+  Serial.print(F("SSID: "));
   Serial.println(ssid);
-  Serial.print("pass: ");
+  Serial.print(F("pass: "));
   Serial.print(pass);
   xSemaphoreGive(binSemaphore_Console);
   return true;
@@ -176,40 +181,40 @@ bool writeCredNVM(){
   FlashMemory.buf[0] = len;
 
   xSemaphoreTake(binSemaphore_Console, portMAX_DELAY);
-  Serial.print("FlashMemory.buf[0] = ");
+  Serial.print(F("FlashMemory.buf[0] = "));
   Serial.println(len);
   
   
   for(int i = 0; i < len; i++) {
     FlashMemory.buf[i+1] = ssid[i];
-    Serial.print("FlashMemory.buf[");
+    Serial.print(F("FlashMemory.buf["));
     Serial.print(i+1);
-    Serial.print("] = ");
+    Serial.print(F("] = "));
     Serial.println(ssid[i]);
     
   }
 
   int pw_len = strlen(pass);
   FlashMemory.buf[len+1] = pw_len;
-  Serial.print("pw_len = ");
+  Serial.print(F("pw_len = "));
   Serial.print(pw_len);
-  Serial.print("stored at: ");
+  Serial.print(F("stored at: "));
   Serial.println(len + 1);
   
   for(int i = 0; i < pw_len; i++) {
     FlashMemory.buf[i+len+2] = pass[i];
-    Serial.print("FlashMemory.buf[");
+    Serial.print(F("FlashMemory.buf["));
     Serial.print(i+len+2);
-    Serial.print("] = ");
+    Serial.print(F("] = "));
     Serial.println(pass[i]);
   }
-  Serial.println("Writing to NVM");
+  Serial.println(F("Writing to NVM"));
   xSemaphoreGive(binSemaphore_Console);
   FlashMemory.update();
 
   FlashMemory.read();
-  Serial.print("SSID len: "); Serial.println(FlashMemory.buf[0]);
-  Serial.print("Pass len: "); Serial.println(FlashMemory.buf[(FlashMemory.buf[0] + 1)]);
+  Serial.print(F("SSID len: ")); Serial.println(FlashMemory.buf[0]);
+  Serial.print(F("Pass len: ")); Serial.println(FlashMemory.buf[(FlashMemory.buf[0] + 1)]);
   
   return true;
 }
@@ -236,17 +241,17 @@ bool getCreds(String str){
   }
   //ssid = str.substring(pos+5, str.indexOf('&')).c_str();
   strcpy(ssid, str.substring(pos+5, str.indexOf('&')).c_str());
-  Serial.print("SSID entered: ");
+  Serial.print(F("SSID entered: "));
   Serial.println(ssid);
 
   pos = find_text("pass=", str);  
   if(pos == -1){
-    Serial.println("PASS not found");
+    Serial.println(F("PASS not found"));
     return false;
   }
   //pass = str.substring(pos+5, (find_text("&btn", str))).c_str();
   strcpy(pass, str.substring(pos+5, (find_text("&btn", str))).c_str());
-  Serial.print("PASS entered: ");
+  Serial.print(F("PASS entered: "));
   Serial.println(pass);
   return true;
 }
